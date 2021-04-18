@@ -1,2 +1,49 @@
 require("dotenv").config();
-console.log(process.env.PROJECT_NAME);
+import express from "express";
+import { google } from "googleapis";
+const cors = require("cors");
+
+const listCoursesUrl = "https://classroom.googleapis.com/v1/courses";
+const SCOPES = ["https://www.googleapis.com/auth/classroom.courses.readonly"];
+
+const app = express();
+app.use(cors());
+
+app.get("/", (req, res) => {
+  const oAuth2Client = new google.auth.OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    "http://localhost:3000/courses"
+  );
+  const authUrl = oAuth2Client.generateAuthUrl({
+    access_type: "offline",
+    scope: SCOPES,
+  });
+  res.send(`
+    <h1>Automate Google Classroom!</h1>
+    <a href = ${authUrl}>sign in with google</a>
+  `);
+});
+
+app.get("/courses", async (req, res) => {
+  const code = req.query.code;
+  const oAuth2Client = new google.auth.OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    "http://localhost:3000/courses"
+  );
+  const token = await oAuth2Client.getToken(code as string);
+
+  res.send(`
+    <h1>Your Courses: </h1>
+    <p>code: ${code}</p>
+    <p>token: ${JSON.stringify(token)}</p>
+  `);
+});
+
+app.listen(process.env.PORT, () =>
+  console.log(
+    "Google Classroom Automation listening on port ",
+    process.env.PORT
+  )
+);
