@@ -23,6 +23,13 @@ app.get("/", (req, res) => {
     scope: SCOPES,
   });
   res.send(`
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <style>
+      *{
+        font-family: 'Roboto', 'sans-serif';
+      }
+    </style>
     <h1>Automate Google Classroom!</h1>
     <a href = ${authUrl}>Sign in with Google</a>
   `);
@@ -43,9 +50,11 @@ app.get("/courses", async (req, res) => {
     const response = await classroom.courses.list({});
     const { courses } = response.data;
     res.send(`
+      <link rel="preconnect" href="https://fonts.gstatic.com">
+      <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
       <a href="/">home</a>
       <h1>Your Courses: </h1>
-      <div style="display: flex; flex-wrap: wrap">
+      <div style="display: flex; flex-wrap: wrap; font-family: 'Roboto', 'sans-serif';">
       ${courses
         ?.map((course) => {
           return `
