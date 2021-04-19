@@ -4,18 +4,10 @@ import { google } from "googleapis";
 import axios from "axios";
 const cors = require("cors");
 
-const listCoursesUrl = "https://classroom.googleapis.com/v1/courses";
 const SCOPES = [
   "https://www.googleapis.com/auth/classroom.courses",
   "https://www.googleapis.com/auth/classroom.courses.readonly",
 ];
-enum CourseState {
-  COURSE_STATE_UNSPECIFIED,
-  ACTIVE,
-  ARCHIVED,
-  PROVISIONED,
-  DECLINED,
-}
 
 const app = express();
 app.use(cors());
@@ -32,7 +24,7 @@ app.get("/", (req, res) => {
   });
   res.send(`
     <h1>Automate Google Classroom!</h1>
-    <a href = ${authUrl}>sign in with google</a>
+    <a href = ${authUrl}>Sign in with Google</a>
   `);
 });
 
@@ -49,11 +41,27 @@ app.get("/courses", async (req, res) => {
   const classroom = google.classroom({ version: "v1", auth: oAuth2Client });
   try {
     const response = await classroom.courses.list({});
-    const courses = response.data;
+    const { courses } = response.data;
     res.send(`
       <a href="/">home</a>
       <h1>Your Courses: </h1>
-      <pre>${JSON.stringify(courses)}</pre>
+      <div style="display: flex; flex-wrap: wrap">
+      ${courses
+        ?.map((course) => {
+          return `
+            <div style="margin: 5px; border: 3px solid gray; border-radius: 4px; width: 100%">
+              <h2>${course.name}</h2>
+              <hr>
+              <h5>${course.section ?? ""}</h5>
+              <h5>${course.descriptionHeading ?? ""}</h5>
+              <h5>${course.description ?? ""}</h5>
+              <a href="${course.alternateLink}">Go To Class</a>
+            </div>
+          `;
+        })
+        .toString()
+        .replace(/,/g, "<br>")}
+      </div>
     `);
   } catch (err) {
     console.error(err);
