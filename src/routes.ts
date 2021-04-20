@@ -5,14 +5,16 @@ const router = express.Router();
 const SCOPES = [
   "https://www.googleapis.com/auth/classroom.courses",
   "https://www.googleapis.com/auth/classroom.courses.readonly",
+  "https://www.googleapis.com/auth/classroom.announcements",
 ];
 
+const oAuth2Client = new google.auth.OAuth2(
+  process.env.CLIENT_ID,
+  process.env.CLIENT_SECRET,
+  "http://localhost:3000/courses"
+);
+
 router.get("/", (req, res) => {
-  const oAuth2Client = new google.auth.OAuth2(
-    process.env.CLIENT_ID,
-    process.env.CLIENT_SECRET,
-    "http://localhost:3000/courses"
-  );
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: "offline",
     scope: SCOPES,
@@ -30,15 +32,10 @@ router.get("/", (req, res) => {
 
 router.get("/courses", async (req, res) => {
   const code = req.query.code;
-  const oAuth2Client = new google.auth.OAuth2(
-    process.env.CLIENT_ID,
-    process.env.CLIENT_SECRET,
-    "http://localhost:3000/courses"
-  );
-
   const { tokens } = await oAuth2Client.getToken(code as string);
   oAuth2Client.setCredentials(tokens);
   const classroom = google.classroom({ version: "v1", auth: oAuth2Client });
+
   try {
     const response = await classroom.courses.list({});
     const { courses } = response.data;
@@ -61,7 +58,21 @@ router.get("/courses", async (req, res) => {
               <h5>${course.descriptionHeading ?? ""}</h5>
               <h5>${course.description ?? ""}</h5>
               <a href="${course.alternateLink}">Go To Class</a>
+              <hr>
+              <textarea id="${
+                course.name?.replace(/\s/g, "-") + "-anouncement-input"
+              }"></textarea>
+              <button onclick="createAnouncement()">Create Anouncement</button>
             </div>
+            <script>
+              function createAnouncement() {
+                window.location.href=\`/create-anouncement?text=\${document.getElementById("${
+                  course.name?.replace(/\s/g, "-") + "-anouncement-input"
+                }").value}&courseId=${course.id}&courseLink=${
+            course.alternateLink
+          }\`
+              };
+            </script>
           `;
         })
         .toString()
@@ -75,6 +86,37 @@ router.get("/courses", async (req, res) => {
       <h1>Your Courses: </h1>
       <p>Failed to get your courses. Please try again.</p>
   `);
+  }
+});
+
+router.get("/create-anouncement", async (req, res) => {
+  const classroom = google.classroom({ version: "v1", auth: oAuth2Client });
+  try {
+    const response = await classroom.courses.announcements.create({
+      courseId: req.query.courseId as string,
+      requestBody: { text: req.query.text as string },
+    });
+    res.send(`
+      <link rel="preconnect" href="https://fonts.gstatic.com">
+      <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+      <style>
+        *{font-family: 'Roboto', 'sans-serif';}
+      </style>
+      <a href="/">home</a>
+      <h1>Anouncement Submitted!</h1>
+      <a href=${response.data.alternateLink}>View Anouncement</a>
+    `);
+  } catch (err) {
+    res.send(`
+      <link rel="preconnect" href="https://fonts.gstatic.com">
+      <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+      <style>
+        *{font-family: 'Roboto', 'sans-serif';}
+      </style>
+      <a href="/">home</a>
+      <h1>Failed To Submit Announcement :(</h1>
+      <a href=${req.query.courseLink}>Go To Class</a>
+    `);
   }
 });
 
