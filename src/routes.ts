@@ -6,6 +6,7 @@ const SCOPES = [
   "https://www.googleapis.com/auth/classroom.courses",
   "https://www.googleapis.com/auth/classroom.courses.readonly",
   "https://www.googleapis.com/auth/classroom.announcements",
+  "https://www.googleapis.com/auth/classroom.coursework.students",
 ];
 
 const oAuth2Client = new google.auth.OAuth2(
@@ -63,6 +64,7 @@ router.get("/courses", async (req, res) => {
                 course.name?.replace(/\s/g, "-") + "-anouncement-input"
               }"></textarea>
               <button onclick="createAnouncement()">Create Anouncement</button>
+              <button onclick="createQuestion()">Create Question</button>
             </div>
             <script>
               function createAnouncement() {
@@ -71,6 +73,11 @@ router.get("/courses", async (req, res) => {
                 }").value}&courseId=${course.id}&courseLink=${
             course.alternateLink
           }\`
+              };
+              function createQuestion() {
+                window.location.href=\`/create-assignment?courseId=${
+                  course.id
+                }&courseLink=${course.alternateLink}\`
               };
             </script>
           `;
@@ -115,6 +122,46 @@ router.get("/create-anouncement", async (req, res) => {
       </style>
       <a href="/">home</a>
       <h1>Failed To Submit Announcement :(</h1>
+      <a href=${req.query.courseLink}>Go To Class</a>
+    `);
+  }
+});
+
+router.get("/create-assignment", async (req, res) => {
+  const classroom = google.classroom({ version: "v1", auth: oAuth2Client });
+  try {
+    const response = await classroom.courses.courseWork.create({
+      courseId: req.query.courseId as string,
+      requestBody: {
+        title: "Do you like the Google Classroom API?",
+        workType: "MULTIPLE_CHOICE_QUESTION",
+        state: "PUBLISHED",
+        multipleChoiceQuestion: {
+          choices: ["Yes", "No"],
+        },
+      },
+    });
+    res.send(`
+      <link rel="preconnect" href="https://fonts.gstatic.com">
+      <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+      <style>
+        *{font-family: 'Roboto', 'sans-serif';}
+      </style>
+      <a href="/">home</a>
+      <h1>Assingment Created!</h1>
+      <a href=${response.data.alternateLink}>View Assignment</a>
+      <p>${JSON.stringify(response.data)}</p>
+    `);
+  } catch (err) {
+    console.error(err);
+    res.send(`
+      <link rel="preconnect" href="https://fonts.gstatic.com">
+      <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+      <style>
+        *{font-family: 'Roboto', 'sans-serif';}
+      </style>
+      <a href="/">home</a>
+      <h1>Failed To Create Question :(</h1>
       <a href=${req.query.courseLink}>Go To Class</a>
     `);
   }
