@@ -32,14 +32,14 @@ router.get("/", (req, res) => {
 });
 
 router.get("/courses", async (req, res) => {
-  const code = req.query.code;
-  const { tokens } = await oAuth2Client.getToken(code as string);
-  oAuth2Client.setCredentials(tokens);
-  const classroom = google.classroom({ version: "v1", auth: oAuth2Client });
-
   try {
+    const code = req.query.code;
+    const { tokens } = await oAuth2Client.getToken(code as string);
+    oAuth2Client.setCredentials(tokens);
+    const classroom = google.classroom({ version: "v1", auth: oAuth2Client });
     const response = await classroom.courses.list({});
     const { courses } = response.data;
+
     res.send(`
       <link rel="preconnect" href="https://fonts.gstatic.com">
       <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
