@@ -1,5 +1,6 @@
 import express from "express";
 import { google, classroom_v1 } from "googleapis";
+import { readFileSync, writeFile } from "fs";
 const router = express.Router();
 
 const SCOPES = [
@@ -9,17 +10,17 @@ const SCOPES = [
   "https://www.googleapis.com/auth/classroom.coursework.students",
 ];
 
-const oAuth2Client = new google.auth.OAuth2(
-  process.env.CLIENT_ID,
-  process.env.CLIENT_SECRET,
-  "http://localhost:3000/courses"
-);
-
 router.get("/", (req, res) => {
+  const oAuth2Client = new google.auth.OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    "http://localhost:3000/courses"
+  );
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: "offline",
     scope: SCOPES,
   });
+
   res.send(`
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
@@ -32,10 +33,19 @@ router.get("/", (req, res) => {
 });
 
 router.get("/courses", async (req, res) => {
+  const oAuth2Client = new google.auth.OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    "http://localhost:3000/courses"
+  );
   try {
     const code = req.query.code;
     const { tokens } = await oAuth2Client.getToken(code as string);
     oAuth2Client.setCredentials(tokens);
+    writeFile("./refresh_token.txt", tokens.refresh_token ?? "NULL", (err) => {
+      if (err) throw err;
+    });
+
     const classroom = google.classroom({ version: "v1", auth: oAuth2Client });
     const response = await classroom.courses.list({});
     const { courses } = response.data;
@@ -97,7 +107,16 @@ router.get("/courses", async (req, res) => {
 });
 
 router.get("/create-anouncement", async (req, res) => {
+  const oAuth2Client = new google.auth.OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    "http://localhost:3000/courses"
+  );
+
+  const data = readFileSync("./refresh_token.txt", "utf-8");
+  oAuth2Client.setCredentials({ refresh_token: data });
   const classroom = google.classroom({ version: "v1", auth: oAuth2Client });
+
   try {
     const response = await classroom.courses.announcements.create({
       courseId: req.query.courseId as string,
@@ -114,6 +133,7 @@ router.get("/create-anouncement", async (req, res) => {
       <a href=${response.data.alternateLink}>View Anouncement</a>
     `);
   } catch (err) {
+    console.error(err);
     res.send(`
       <link rel="preconnect" href="https://fonts.gstatic.com">
       <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
@@ -128,7 +148,17 @@ router.get("/create-anouncement", async (req, res) => {
 });
 
 router.get("/create-assignment", async (req, res) => {
+  const oAuth2Client = new google.auth.OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    "http://localhost:3000/courses"
+  );
+
+  const data = readFileSync("./refresh_token.txt", "utf-8");
+  oAuth2Client.setCredentials({ refresh_token: data });
+
   const classroom = google.classroom({ version: "v1", auth: oAuth2Client });
+
   try {
     const response = await classroom.courses.courseWork.create({
       courseId: req.query.courseId as string,

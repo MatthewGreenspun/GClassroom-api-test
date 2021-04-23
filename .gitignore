@@ -1,3 +1,6 @@
 node_modules
+
+#contains credentials
 .env
 client_id.json
+refresh_token.txt
