@@ -2,7 +2,6 @@ require("dotenv").config();
 import express from "express";
 import router from "./routes";
 import { google, classroom_v1 } from "googleapis";
-import axios from "axios";
 const cors = require("cors");
 
 const app = express();
